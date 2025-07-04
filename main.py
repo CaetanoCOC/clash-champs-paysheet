@@ -72,49 +72,52 @@ if uploaded_file:
             value=f"$ {total_value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         )
 
-        # Group by Level
-        sales_by_level = filtered_df.groupby("Level")["Value"].sum().reset_index()
+                # Agrupa por Level: soma dos valores e contagem de bases
+        sales_by_level = filtered_df.groupby("Level").agg(
+            TotalValue=pd.NamedAgg(column="Value", aggfunc="sum"),
+            TotalBases=pd.NamedAgg(column="Base#", aggfunc="count")
+        ).reset_index()
 
-        # Format for display
-        sales_by_level["FormattedValue"] = sales_by_level["Value"].apply(
+        # Garante ordem fixa dos níveis
+        level_order = list(range(9, 18))
+        sales_by_level = sales_by_level.set_index("Level").reindex(level_order).fillna(0).reset_index()
+
+        # Formata o valor em reais (ou dólares)
+        sales_by_level["FormattedValue"] = sales_by_level["TotalValue"].apply(
             lambda x: f"$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         )
 
-        # Define full level range (9 to 17)
-        level_order = list(range(9, 18))  # 9 to 17 inclusive
-        sales_by_level["Level"] = sales_by_level["Level"].astype(int)
-        sales_by_level = sales_by_level.set_index("Level").reindex(level_order).reset_index()
-        sales_by_level["Value"] = sales_by_level["Value"].fillna(0)
-        sales_by_level["FormattedValue"] = sales_by_level["Value"].apply(
-            lambda x: f"$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        )
-
-        # Bar chart with horizontal bars
+        # Cria gráfico: quantidade no eixo, valor no texto
         fig = px.bar(
             sales_by_level,
-            x="Value",
+            x="TotalBases",
             y="Level",
             text="FormattedValue",
             orientation="h",
             title=f"Sales by Level - {month_names[month]} {year}",
-            color_discrete_sequence=["DarkKhaki"],
-            hover_data={"FormattedValue": True, "Level": False, "Value": False}
+            color_discrete_sequence=["#BDB76B"],
+            hover_data={"FormattedValue": True, "TotalBases": True, "TotalValue": False}
         )
 
         fig.update_traces(textposition="outside")
 
-        # Adjust height dynamically (e.g. 60px per level)
         fig.update_layout(
-            width=900,  # 👈 aumenta a largura do gráfico
+            width=900,
             height=60 * len(level_order),
             plot_bgcolor="#111111",
             paper_bgcolor="#111111",
             font=dict(color='white', size=14),
-            title_x=0.0,  # Alinha à esquerda
-            title_y=0.95,  # Opcional para aproximar do topo
-            xaxis=dict(title="Total Sales", color='white'),
-            yaxis=dict(title="Level", color='white', categoryorder="array", categoryarray=level_order),
+            title_x=0.0,
+            xaxis=dict(title="Number of Bases Sold", color='white'),
+            yaxis=dict(
+                title="Level",
+                color='white',
+                categoryorder="array",
+                categoryarray=level_order
+            ),
         )
+
+
 
         st.plotly_chart(fig, use_container_width=True)
         st.subheader(f"Filtered data: {month_names[month]} {year}")
