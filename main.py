@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -40,7 +41,7 @@ if uploaded_file:
     df = process_sheet(uploaded_file)
 
     # -- SIDEBAR FILTERS --
-    st.sidebar.header("")
+    st.sidebar.header("Filters")
 
     available_years = sorted(df["Date"].dt.year.unique())
     month_names = {
@@ -49,22 +50,17 @@ if uploaded_file:
         9: "September", 10: "October", 11: "November", 12: "December"
     }
 
-        # Sidebar Filters
-    st.sidebar.header("Filters")
-
     month = st.sidebar.selectbox("Select month", options=list(month_names.keys()), format_func=lambda x: month_names[x])
     year = st.sidebar.selectbox("Select year", options=available_years)
 
-    # Display image below filters (larger and no warning)
-    st.sidebar.image("bk_img.png", width=2000)  # Adjust width as needed
-
+    # Sidebar image
+    st.sidebar.image("bk_img.png", width=200)
 
     # -- FILTER DATA --
     filtered_df = df[(df["Date"].dt.month == month) & (df["Date"].dt.year == year)]
 
-    # Summary Section
     st.subheader(f"{month_names[month]} {year}")
-    
+
     if not filtered_df.empty:
         total_value = filtered_df["Value"].sum()
         st.metric(
@@ -72,22 +68,18 @@ if uploaded_file:
             value=f"$ {total_value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         )
 
-                # Agrupa por Level: soma dos valores e contagem de bases
         sales_by_level = filtered_df.groupby("Level").agg(
             TotalValue=pd.NamedAgg(column="Value", aggfunc="sum"),
             TotalBases=pd.NamedAgg(column="Base#", aggfunc="count")
         ).reset_index()
 
-        # Garante ordem fixa dos níveis
         level_order = list(range(9, 18))
         sales_by_level = sales_by_level.set_index("Level").reindex(level_order).fillna(0).reset_index()
 
-        # Formata o valor em reais (ou dólares)
         sales_by_level["FormattedValue"] = sales_by_level["TotalValue"].apply(
             lambda x: f"$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         )
 
-        # Cria gráfico: quantidade no eixo, valor no texto
         fig = px.bar(
             sales_by_level,
             x="TotalBases",
@@ -116,8 +108,6 @@ if uploaded_file:
                 categoryarray=level_order
             ),
         )
-
-
 
         st.plotly_chart(fig, use_container_width=True)
         st.subheader(f"Filtered data: {month_names[month]} {year}")
