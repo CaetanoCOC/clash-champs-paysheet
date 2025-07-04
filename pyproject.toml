@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "clash champs bases"
+version = "0.1.0"
+description = "Paysheet"
+authors = ["Bruno Caetano"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+streamlit = "^1.46.1"
+pandas = "^2.3.0"
+openpyxl = "^3.1.5"
+matplotlib = "^3.10.3"
+seaborn = "^0.13.2"
+plotly = "^6.2.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
