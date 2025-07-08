@@ -1,7 +1,8 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+
+st.set_page_config(page_title="Clash Champs Paysheet", layout="wide")
 
 def process_sheet(file):
     df = pd.read_excel(file, sheet_name=0)
@@ -19,7 +20,6 @@ def process_sheet(file):
     # Extrai apenas os dígitos do campo "Level" (ex: "CTh17" → "17")
     df["Level"] = df["Level"].astype(str).str.extract(r"(\d+)", expand=False)
     df["Level"] = pd.to_numeric(df["Level"], errors="coerce")
-
 
     df_long = df.melt(
         id_vars=["Pack/Order#", "Base#", "Level"],
@@ -96,12 +96,12 @@ if uploaded_file:
         fig.update_traces(textposition="outside")
 
         fig.update_layout(
-            width=900,
             height=60 * len(level_order),
-            plot_bgcolor="#111111",
-            paper_bgcolor="#111111",
+            margin=dict(l=40, r=40, t=60, b=40),
+            plot_bgcolor="#0e1117",
+            paper_bgcolor="#0e1117",
             font=dict(color='white', size=14),
-            title_x=0.0,
+            title_x=0.02,
             xaxis=dict(title="Number of Bases Sold", color='white'),
             yaxis=dict(
                 title="Level",
@@ -113,9 +113,19 @@ if uploaded_file:
 
         st.plotly_chart(fig, use_container_width=True)
         st.subheader(f"Filtered data: {month_names[month]} {year}")
-        st.dataframe(filtered_df)
+        st.dataframe(filtered_df, use_container_width=True)
 
     else:
         st.warning("⚠️ No data found for the selected period.")
         st.plotly_chart(px.bar(title="No data for the selected period"), use_container_width=True)
-        st.dataframe(pd.DataFrame(columns=df.columns))
+        st.dataframe(pd.DataFrame(columns=df.columns), use_container_width=True)
+
+# Optional CSS for responsiveness and dark theme consistency
+st.markdown("""
+    <style>
+        #MainMenu, footer {visibility: hidden;}
+        .block-container {padding: 2rem 1rem 1rem 1rem;}
+        .stPlotlyChart {padding-bottom: 2rem;}
+        .css-1aumxhk {margin-top: -40px;}
+    </style>
+""", unsafe_allow_html=True)
