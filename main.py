@@ -1,8 +1,22 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import requests
 
 st.set_page_config(page_title="Clash Champs Paysheet", layout="wide")
+
+# Função para obter cotação USD → BRL
+
+def get_usd_brl_rate():
+    """Retorna o valor do dólar em reais usando a AwesomeAPI."""
+    try:
+        resp = requests.get("https://economia.awesomeapi.com.br/json/last/USD-BRL")
+        data = resp.json()
+        return float(data["USDBRL"]["bid"])
+    except Exception:
+        return None
+
+# Função de tratamento da planilha
 
 def process_sheet(file):
     df = pd.read_excel(file, sheet_name=0)
@@ -17,7 +31,6 @@ def process_sheet(file):
 
     df["Pack/Order#"] = pd.to_numeric(df["Pack/Order#"], errors="coerce")
     df["Base#"] = pd.to_numeric(df["Base#"], errors="coerce")
-    # Extrai apenas os dígitos do campo "Level" (ex: "CTh17" → "17")
     df["Level"] = df["Level"].astype(str).str.extract(r"(\d+)", expand=False)
     df["Level"] = pd.to_numeric(df["Level"], errors="coerce")
 
@@ -36,6 +49,7 @@ def process_sheet(file):
     return df_long.sort_values(by=["Base#", "Level", "Date"], ascending=False)
 
 # STREAMLIT APP
+
 st.title("Clash Champs Paysheet")
 uploaded_file = st.file_uploader("Upload your spreadsheet (.xlsx)", type=["xlsx"])
 
@@ -52,7 +66,11 @@ if uploaded_file:
         9: "September", 10: "October", 11: "November", 12: "December"
     }
 
-    month = st.sidebar.selectbox("Select month", options=list(month_names.keys()), format_func=lambda x: month_names[x])
+    month = st.sidebar.selectbox(
+        "Select month",
+        options=list(month_names.keys()),
+        format_func=lambda x: month_names[x]
+    )
     year = st.sidebar.selectbox("Select year", options=available_years)
 
     # Sidebar image
@@ -65,10 +83,20 @@ if uploaded_file:
 
     if not filtered_df.empty:
         total_value = filtered_df["Value"].sum()
-        st.metric(
-            label="💰 Total sales for the month",
-            value=f"$ {total_value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        )
+        usd_brl = get_usd_brl_rate()
+        if usd_brl:
+            valor_em_reais = total_value * usd_brl
+            st.metric(
+                label="💰 Total sales for the month",
+                value=f"$ {total_value:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+                delta=(f"≈ R$ {valor_em_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                       + f" (USD 1 = R$ {usd_brl:.2f})")
+            )
+        else:
+            st.metric(
+                label="💰 Total sales for the month",
+                value=f"$ {total_value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            )
 
         sales_by_level = filtered_df.groupby("Level").agg(
             TotalValue=pd.NamedAgg(column="Value", aggfunc="sum"),
@@ -93,6 +121,7 @@ if uploaded_file:
             hover_data={"FormattedValue": True, "TotalBases": True, "TotalValue": False}
         )
 
+        # Gráfico sem traços auxiliares
         fig.update_traces(textposition="outside")
 
         fig.update_layout(
@@ -109,6 +138,8 @@ if uploaded_file:
                 categoryorder="array",
                 categoryarray=level_order
             ),
+            yaxis_showgrid=True,
+            yaxis_gridcolor="#444"
         )
 
         st.plotly_chart(fig, use_container_width=True)
