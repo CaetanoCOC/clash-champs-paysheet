@@ -16,8 +16,10 @@ def process_sheet(file):
 
     df["Pack/Order#"] = pd.to_numeric(df["Pack/Order#"], errors="coerce")
     df["Base#"] = pd.to_numeric(df["Base#"], errors="coerce")
-    df["Level"] = df["Level"].astype(str).str.upper().str.replace("TH", "").str.strip()
+    # Extrai apenas os dígitos do campo "Level" (ex: "CTh17" → "17")
+    df["Level"] = df["Level"].astype(str).str.extract(r"(\d+)", expand=False)
     df["Level"] = pd.to_numeric(df["Level"], errors="coerce")
+
 
     df_long = df.melt(
         id_vars=["Pack/Order#", "Base#", "Level"],
